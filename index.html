@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meow Shop HN | Tienda de ropa</title>
+  <meta name="description" content="Meow Shop HN: ropa con estilo. Elige tu prenda y compra por WhatsApp.">
+  <meta name="theme-color" content="#F6C8CC">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <a class="brand" href="./" aria-label="Meow Shop HN, inicio">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M10 8l14 12h16L54 8v26c0 14-10 22-22 22S10 48 10 34z" fill="#F6C8CC" stroke="#241D1E" stroke-width="3" stroke-linejoin="round"/>
+          <circle cx="24" cy="32" r="3" fill="#241D1E"/><circle cx="40" cy="32" r="3" fill="#241D1E"/>
+          <path d="M29 40q3 3 6 0" fill="none" stroke="#241D1E" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="32" cy="37" r="2" fill="#E58D9A"/>
+        </svg>
+        <span>Meow Shop <em>HN</em></span>
+      </a>
+      <nav class="nav" aria-label="Principal">
+        <a href="#catalogo">Catálogo</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <span class="etiqueta">Nueva colección</span>
+        <h1>Ropa con estilo, directo a tu WhatsApp 🐾</h1>
+        <p>Elige tu prenda, toca “Comprar por WhatsApp” y te atendemos con el producto ya identificado.</p>
+        <a class="btn" href="#catalogo">Ver catálogo</a>
+      </div>
+    </section>
+
+    <section class="container" id="catalogo" aria-labelledby="t-cat">
+      <h2 id="t-cat" class="sr-only">Catálogo</h2>
+      <div id="aviso"></div>
+      <div class="filtros">
+        <label class="sr-only" for="buscar">Buscar producto</label>
+        <input id="buscar" type="search" placeholder="Buscar por nombre o código…">
+        <div id="chips" role="group" aria-label="Categorías"></div>
+      </div>
+      <div class="grid" id="grid" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="m-titulo">
+    <div class="caja">
+      <button class="btn sec chico cerrar" id="cerrar" aria-label="Cerrar">✕</button>
+      <div class="detalle">
+        <div class="foto"><img id="m-img" alt=""></div>
+        <div class="info">
+          <span class="etiqueta" id="m-cat"></span>
+          <h2 id="m-titulo"></h2>
+          <div class="sku" id="m-sku"></div>
+          <div class="precio" id="m-precio" style="font-weight:800;font-size:1.4rem"></div>
+          <p id="m-desc"></p>
+          <div id="m-talla-wrap"><label for="m-talla">Talla</label><select id="m-talla"></select></div>
+          <div id="m-color-wrap"><label for="m-color">Color</label><select id="m-color"></select></div>
+          <a class="btn" id="m-wa" target="_blank" rel="noopener">💬 Comprar por WhatsApp</a>
+          <div class="ayuda">Se abrirá WhatsApp con el producto, código, talla y color ya escritos.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container"><b>Meow Shop HN</b> · Ventas por WhatsApp · © <span id="anio"></span></div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/store.js"></script>
+</body>
+</html>

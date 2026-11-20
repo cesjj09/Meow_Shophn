@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel | Meow Shop HN</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Inicio de sesión -->
+  <section class="login" id="vista-login" hidden>
+    <form class="tarjeta" id="form-login" autocomplete="on">
+      <h1>🐾 Panel de Meow Shop HN</h1>
+      <div id="login-error" class="msg-error" role="alert" hidden></div>
+      <div><label for="email">Correo</label><input id="email" type="email" required autocomplete="username"></div>
+      <div><label for="pass">Contraseña</label><input id="pass" type="password" required autocomplete="current-password"></div>
+      <button class="btn" type="submit" id="btn-login">Entrar</button>
+      <a href="./" style="text-align:center">← Volver a la tienda</a>
+    </form>
+  </section>
+
+  <!-- Panel -->
+  <div id="vista-panel" hidden>
+    <header class="header">
+      <div class="container">
+        <a class="brand" href="./"><span>Meow Shop <em>HN</em></span></a>
+        <div><span id="quien" class="ayuda"></span> <button class="btn sec chico" id="salir">Cerrar sesión</button></div>
+      </div>
+    </header>
+    <main class="container">
+      <div class="panel-barra">
+        <div class="tabs">
+          <button class="chip" id="tab-prod" aria-pressed="true">Productos</button>
+          <button class="chip" id="tab-cat" aria-pressed="false">Categorías</button>
+          <button class="chip" id="tab-aj" aria-pressed="false">Ajustes</button>
+        </div>
+        <button class="btn" id="nuevo">+ Nuevo producto</button>
+      </div>
+
+      <div id="sec-prod" class="tabla-wrap">
+        <table>
+          <thead><tr><th>Foto</th><th>Código</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="filas"></tbody>
+        </table>
+      </div>
+
+      <div id="sec-aj" hidden>
+        <form id="form-aj" class="formulario" style="background:#fff;border:1px solid var(--borde);border-radius:var(--radio);max-width:460px">
+          <h2 style="margin:0;font-size:1.2rem">Número de WhatsApp de ventas</h2>
+          <div>
+            <label for="aj-wa">Número (código de país + número)</label>
+            <input id="aj-wa" inputmode="numeric" placeholder="50488875357" required>
+            <div class="ayuda">Solo dígitos, ej. 504 + 8 dígitos. El cambio se aplica de inmediato en la tienda.</div>
+          </div>
+          <button class="btn" type="submit">Guardar número</button>
+        </form>
+      </div>
+
+      <div id="sec-cat" hidden>
+        <form id="form-cat" class="panel-barra" style="justify-content:flex-start">
+          <input id="cat-nombre" placeholder="Nueva categoría" maxlength="60" required style="max-width:280px">
+          <button class="btn" type="submit">Agregar</button>
+        </form>
+        <div class="tabla-wrap"><table><thead><tr><th>Categoría</th><th>Acciones</th></tr></thead><tbody id="filas-cat"></tbody></table></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Formulario de producto -->
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="f-titulo">
+    <div class="caja">
+      <form class="formulario" id="form-prod">
+        <h2 id="f-titulo" style="margin:0">Producto</h2>
+        <div id="f-error" class="msg-error" role="alert" hidden></div>
+        <div class="fila">
+          <div><label for="f-nombre">Nombre *</label><input id="f-nombre" required maxlength="120"></div>
+          <div><label for="f-sku">Código (SKU)</label><input id="f-sku" maxlength="30" placeholder="Automático si lo dejas vacío"></div>
+        </div>
+        <div class="fila">
+          <div><label for="f-precio">Precio (L) *</label><input id="f-precio" type="number" min="0" step="0.01" required></div>
+          <div><label for="f-cat">Categoría</label><select id="f-cat"></select></div>
+        </div>
+        <div><label for="f-desc">Descripción</label><textarea id="f-desc" rows="3" maxlength="1500"></textarea></div>
+        <div class="fila">
+          <div><label for="f-tallas">Tallas</label><input id="f-tallas" placeholder="S, M, L"><div class="ayuda">Separadas por coma</div></div>
+          <div><label for="f-colores">Colores</label><input id="f-colores" placeholder="Negro, Rosa"><div class="ayuda">Separados por coma</div></div>
+        </div>
+        <div>
+          <label for="f-img">Imagen (JPG, PNG o WebP, máx. 2 MB)</label>
+          <input id="f-img" type="file" accept="image/jpeg,image/png,image/webp">
+          <div class="ayuda">O pega una URL de imagen:</div>
+          <input id="f-url" type="url" placeholder="https://…">
+          <img id="f-prev" class="vista-previa" alt="Vista previa" hidden style="margin-top:8px">
+        </div>
+        <label style="display:flex;gap:8px;align-items:center"><input id="f-activo" type="checkbox" style="width:auto" checked> Visible en la tienda</label>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button type="button" class="btn sec" id="f-cancelar">Cancelar</button>
+          <button type="submit" class="btn" id="f-guardar">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

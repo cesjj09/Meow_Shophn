@@ -1,0 +1,17 @@
+# Secretos y entornos locales: NUNCA se suben
+.env
+.env.*
+*.pem
+*.key
+*.p12
+secrets/
+service_role*
+*.secret.*
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+node_modules/
+*.log
