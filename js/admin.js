@@ -58,17 +58,29 @@
     e.preventDefault();
     mostrarError("login-error", "");
     $("btn-login").disabled = true;
-    const { error } = await db.auth.signInWithPassword({
-      email: $("email").value.trim(),
-      password: $("pass").value
-    });
-    $("btn-login").disabled = false;
-    if (error) {
-      mostrarError("login-error", "Correo o contraseña incorrectos.");
-      return;
+    $("btn-login").textContent = "Entrando…";
+    try {
+      const { error } = await db.auth.signInWithPassword({
+        email: $("email").value.trim(),
+        password: $("pass").value
+      });
+      if (error) {
+        console.error("Error de login:", error);
+        mostrarError("login-error",
+          /confirm/i.test(error.message)
+            ? "Tu correo aún no está confirmado en Supabase."
+            : `No se pudo iniciar sesión: ${error.message}`);
+        return;
+      }
+      $("pass").value = "";
+      await mostrarSegunSesion();
+    } catch (err) {
+      console.error("Error inesperado:", err);
+      mostrarError("login-error", `Error inesperado: ${err.message || err}`);
+    } finally {
+      $("btn-login").disabled = false;
+      $("btn-login").textContent = "Entrar";
     }
-    $("pass").value = "";
-    await mostrarSegunSesion();
   });
 
   $("salir").addEventListener("click", async () => {
