@@ -7,6 +7,8 @@
   --radio: 16px;
 }
 * { box-sizing: border-box; }
+/* Garantiza que el atributo hidden siempre oculte, aunque otro estilo defina display */
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body {
   margin: 0; background: var(--marfil); color: var(--negro);
