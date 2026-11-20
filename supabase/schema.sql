@@ -83,6 +83,14 @@ drop policy if exists "admins_ver_propio" on public.admins;
 create policy "admins_ver_propio" on public.admins
   for select using (user_id = auth.uid());
 
+-- 4b. Permisos de acceso para la API (proyectos nuevos de Supabase no los dan solos)
+grant usage on schema public to anon, authenticated;
+grant select on public.categorias, public.productos, public.configuracion to anon, authenticated;
+grant insert, update, delete on public.categorias, public.productos, public.configuracion to authenticated;
+grant select on public.admins to authenticated;
+grant usage, select on sequence public.sku_seq to authenticated;
+grant execute on function public.is_admin() to anon, authenticated;
+
 -- 5. Storage para imágenes --------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('productos', 'productos', true, 2097152,

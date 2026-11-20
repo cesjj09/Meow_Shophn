@@ -26,13 +26,18 @@
   // ---------- Sesión ----------
   async function verificarAdmin(user) {
     const { data, error } = await db.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
-    return !error && !!data;
+    if (error) {
+      console.error("Error al verificar administrador:", error);
+      return { ok: false, detalle: error.message };
+    }
+    return { ok: !!data, detalle: "" };
   }
 
   async function mostrarSegunSesion() {
     const { data } = await db.auth.getSession();
     const user = data.session?.user;
-    if (user && (await verificarAdmin(user))) {
+    const chequeo = user ? await verificarAdmin(user) : { ok: false };
+    if (user && chequeo.ok) {
       $("vista-login").hidden = true;
       $("vista-panel").hidden = false;
       $("quien").textContent = user.email;
@@ -40,7 +45,9 @@
     } else {
       if (user) {
         await db.auth.signOut();
-        mostrarError("login-error", "Tu usuario no tiene permisos de administrador.");
+        mostrarError("login-error", chequeo.detalle
+          ? `No se pudo verificar tu permiso (${chequeo.detalle}). Revisa los permisos de la base de datos.`
+          : "Tu usuario no tiene permisos de administrador.");
       }
       $("vista-panel").hidden = true;
       $("vista-login").hidden = false;
