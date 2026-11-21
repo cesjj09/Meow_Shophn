@@ -34,7 +34,7 @@ create index if not exists productos_categoria_idx on public.productos (categori
 create index if not exists productos_activo_idx on public.productos (activo);
 
 create or replace function public.set_updated_at() returns trigger
-language plpgsql as $$
+language plpgsql set search_path = '' as $$
 begin
   new.updated_at = now();
   return new;
@@ -90,12 +90,15 @@ grant insert, update, delete on public.categorias, public.productos, public.conf
 grant select on public.admins to authenticated;
 grant usage, select on sequence public.sku_seq to authenticated;
 grant execute on function public.is_admin() to anon, authenticated;
+-- Quita permisos que Supabase da por defecto y no se necesitan
+revoke truncate, references, trigger on public.categorias, public.productos, public.configuracion, public.admins from anon, authenticated;
 
 -- 5. Storage para imágenes --------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('productos', 'productos', true, 2097152,
         array['image/jpeg','image/png','image/webp'])
-on conflict (id) do nothing;
+on conflict (id) do update set public = true, file_size_limit = 2097152,
+  allowed_mime_types = array['image/jpeg','image/png','image/webp'];
 
 drop policy if exists "imagenes_lectura_publica" on storage.objects;
 create policy "imagenes_lectura_publica" on storage.objects
@@ -113,23 +116,7 @@ drop policy if exists "imagenes_admin_borrar" on storage.objects;
 create policy "imagenes_admin_borrar" on storage.objects
   for delete using (bucket_id = 'productos' and public.is_admin());
 
--- 6. Datos de prueba GENÉRICOS (puedes borrarlos desde el panel) -----------
-insert into public.categorias (nombre) values
-  ('Blusas'), ('Pantalones'), ('Vestidos'), ('Accesorios')
-on conflict (nombre) do nothing;
-
-insert into public.productos (nombre, descripcion, precio, categoria_id, tallas, colores)
-select v.nombre, v.descripcion, v.precio, c.id, v.tallas, v.colores
-from (values
-  ('Blusa básica de algodón',  'Blusa fresca de algodón, ideal para el día a día.',  350.00, 'Blusas',     array['S','M','L'],       array['Blanco','Rosa']),
-  ('Blusa manga corta',        'Corte holgado y tela suave. Producto de ejemplo.',   420.00, 'Blusas',     array['S','M','L','XL'],  array['Negro','Marfil']),
-  ('Pantalón de mezclilla',    'Pantalón de tiro alto, cómodo y resistente.',        680.00, 'Pantalones', array['28','30','32'],    array['Azul']),
-  ('Pantalón de vestir',       'Corte recto para oficina o salidas. Ejemplo.',       750.00, 'Pantalones', array['S','M','L'],       array['Negro','Gris']),
-  ('Vestido casual',           'Vestido ligero para clima cálido. Producto de ejemplo.', 890.00, 'Vestidos', array['S','M','L'],     array['Rosa','Negro']),
-  ('Bolso de mano',            'Bolso pequeño con cierre. Producto de ejemplo.',     520.00, 'Accesorios', array['Única'],           array['Negro','Rosa'])
-) as v(nombre, descripcion, precio, categoria, tallas, colores)
-join public.categorias c on c.nombre = v.categoria
-where not exists (select 1 from public.productos);
+-- 6. (Sin datos de prueba: el catálogo se llena desde el panel de administración)
 
 -- 6b. Ajustes editables desde el panel (ej. número de WhatsApp) --------------
 create table if not exists public.configuracion (

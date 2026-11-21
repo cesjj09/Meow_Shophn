@@ -87,8 +87,9 @@
           <div><label for="f-colores">Colores</label><input id="f-colores" placeholder="Negro, Rosa"><div class="ayuda">Separados por coma</div></div>
         </div>
         <div>
-          <label for="f-img">Imagen (JPG, PNG o WebP, máx. 2 MB)</label>
-          <input id="f-img" type="file" accept="image/jpeg,image/png,image/webp">
+          <label for="f-img">Foto del producto</label>
+          <input id="f-img" type="file" accept="image/*">
+          <div class="ayuda">JPG, PNG o WebP. Se reduce automáticamente, no importa el peso.</div>
           <div class="ayuda">O pega una URL de imagen:</div>
           <input id="f-url" type="url" placeholder="https://…">
           <img id="f-prev" class="vista-previa" alt="Vista previa" hidden style="margin-top:8px">

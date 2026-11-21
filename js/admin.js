@@ -2,8 +2,8 @@
 (function () {
   const { cfg, db, configurado, esc, precio, urlSegura, placeholder } = window.Meow;
   const $ = (id) => document.getElementById(id);
-  const MAX_BYTES = 2 * 1024 * 1024;
-  const TIPOS = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  const MAX_BYTES = 2 * 1024 * 1024; // límite del bucket (después de reducir la foto)
+  const LADO_MAX = 1280;              // las fotos se reducen a este tamaño antes de subir
 
   let productos = [];
   let categorias = [];
@@ -22,6 +22,34 @@
     el.hidden = !texto;
   }
   const lista = (txt) => txt.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 20);
+
+  // Convierte un error de Supabase en un mensaje que se pueda entender y corregir.
+  function explicarError(error, contexto) {
+    console.error(contexto, error);
+    const code = error?.code || "";
+    const msg = error?.message || String(error);
+    if (code === "42501" || /row-level security|permission denied|not authorized/i.test(msg))
+      return `Sin permiso en la base de datos (${code || "RLS"}). Ejecuta supabase/schema.sql completo en el SQL Editor.`;
+    if (code === "42P01" || code === "PGRST205" || /does not exist|schema cache/i.test(msg))
+      return `Falta una tabla en Supabase: ${msg}`;
+    if (/bucket not found/i.test(msg))
+      return "No existe el bucket de imágenes «productos». Ejecuta supabase/schema.sql.";
+    if (code === "23505") return "Ya existe un registro con ese valor (duplicado).";
+    if (code === "23514") return "Un dato no cumple las reglas (revisa longitud del nombre y precio).";
+    if (/jwt|expired/i.test(msg)) return "Tu sesión venció. Cierra sesión y entra de nuevo.";
+    return `${msg}${code ? ` (${code})` : ""}`;
+  }
+
+  // Si la URL pertenece a nuestro bucket, devuelve la ruta del archivo; si no, null.
+  function rutaEnBucket(url) {
+    const marca = `/storage/v1/object/public/${cfg.STORAGE_BUCKET}/`;
+    const i = (url || "").indexOf(marca);
+    return i >= 0 ? decodeURIComponent(url.slice(i + marca.length).split("?")[0]) : null;
+  }
+  async function borrarImagen(url) {
+    const ruta = rutaEnBucket(url);
+    if (ruta) await db.storage.from(cfg.STORAGE_BUCKET).remove([ruta]); // mejor esfuerzo
+  }
 
   // ---------- Sesión ----------
   async function verificarAdmin(user) {
@@ -94,7 +122,7 @@
       db.from("categorias").select("*").order("nombre"),
       db.from("productos").select("*").order("created_at", { ascending: false })
     ]);
-    if (c.error || p.error) { toast("Error al cargar datos"); return; }
+    if (c.error || p.error) { toast("Error al cargar: " + explicarError(c.error || p.error, "cargar")); return; }
     categorias = c.data;
     productos = p.data;
     pintarProductos();
@@ -156,7 +184,7 @@
     const n = $("aj-wa").value.replace(/\D/g, "");
     if (n.length < 10 || n.length > 15) { toast("Número no válido (incluye código de país)"); return; }
     const { error } = await db.from("configuracion").upsert({ clave: "whatsapp", valor: n });
-    if (error) { toast("No se pudo guardar"); return; }
+    if (error) { toast("No se pudo guardar: " + explicarError(error, "guardar whatsapp")); return; }
     $("aj-wa").value = n;
     toast("Número de WhatsApp actualizado");
   });
@@ -167,7 +195,7 @@
     const nombre = $("cat-nombre").value.trim();
     if (!nombre) return;
     const { error } = await db.from("categorias").insert({ nombre });
-    if (error) { toast("No se pudo agregar (¿ya existe?)"); return; }
+    if (error) { toast("No se pudo agregar: " + explicarError(error, "agregar categoría")); return; }
     $("cat-nombre").value = "";
     toast("Categoría agregada");
     await cargar();
@@ -176,7 +204,7 @@
   async function eliminarCategoria(id) {
     if (!confirm("¿Eliminar esta categoría? Los productos quedarán sin categoría.")) return;
     const { error } = await db.from("categorias").delete().eq("id", id);
-    if (error) { toast("No se pudo eliminar"); return; }
+    if (error) { toast("No se pudo eliminar: " + explicarError(error, "eliminar categoría")); return; }
     toast("Categoría eliminada");
     await cargar();
   }
@@ -221,26 +249,60 @@
   $("f-cancelar").addEventListener("click", cerrarForm);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrarForm(); });
 
+  // Reduce la foto (máx. 1280 px) y la convierte a JPG para que siempre quepa en 2 MB.
+  async function prepararImagen(file) {
+    if (!file.type.startsWith("image/")) throw new Error("El archivo debe ser una imagen.");
+    let bmp;
+    try {
+      bmp = await createImageBitmap(file);
+    } catch {
+      throw new Error("No se pudo leer la foto. Usa JPG, PNG o WebP (las fotos HEIC de iPhone: expórtalas como JPG).");
+    }
+    const escala = Math.min(1, LADO_MAX / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * escala));
+    const h = Math.max(1, Math.round(bmp.height * escala));
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(bmp, 0, 0, w, h);
+    if (bmp.close) bmp.close();
+    for (const calidad of [0.85, 0.7, 0.5]) {
+      const blob = await new Promise((ok) => canvas.toBlob(ok, "image/jpeg", calidad));
+      if (blob && blob.size <= MAX_BYTES) return blob;
+    }
+    throw new Error("La foto sigue siendo demasiado pesada. Prueba con otra.");
+  }
+
   async function subirImagen(file) {
-    if (!TIPOS[file.type]) throw new Error("La imagen debe ser JPG, PNG o WebP.");
-    if (file.size > MAX_BYTES) throw new Error("La imagen supera los 2 MB.");
-    const ruta = `${crypto.randomUUID()}.${TIPOS[file.type]}`;
-    const { error } = await db.storage.from(cfg.STORAGE_BUCKET).upload(ruta, file, {
-      contentType: file.type, cacheControl: "31536000"
+    const blob = await prepararImagen(file);
+    const ruta = `${crypto.randomUUID()}.jpg`;
+    const { error } = await db.storage.from(cfg.STORAGE_BUCKET).upload(ruta, blob, {
+      contentType: "image/jpeg", cacheControl: "31536000"
     });
-    if (error) throw new Error("No se pudo subir la imagen.");
-    return db.storage.from(cfg.STORAGE_BUCKET).getPublicUrl(ruta).data.publicUrl;
+    if (error) throw new Error("No se pudo subir la foto: " + explicarError(error, "subir imagen"));
+    return {
+      ruta,
+      url: db.storage.from(cfg.STORAGE_BUCKET).getPublicUrl(ruta).data.publicUrl
+    };
   }
 
   $("form-prod").addEventListener("submit", async (e) => {
     e.preventDefault();
     mostrarError("f-error", "");
     $("f-guardar").disabled = true;
+    $("f-guardar").textContent = "Guardando…";
+    let subida = null; // foto recién subida (se borra si falla el guardado)
+    const anterior = editandoId ? productos.find((x) => x.id === editandoId)?.imagen_url : null;
     try {
       let imagen_url = $("f-url").value.trim() || null;
       if (imagen_url && !urlSegura(imagen_url)) throw new Error("La URL de imagen no es válida.");
       const file = $("f-img").files[0];
-      if (file) imagen_url = await subirImagen(file);
+      if (file) {
+        subida = await subirImagen(file);
+        imagen_url = subida.url;
+      }
 
       const datos = {
         nombre: $("f-nombre").value.trim(),
@@ -259,15 +321,24 @@
       const { error } = editandoId
         ? await db.from("productos").update(datos).eq("id", editandoId)
         : await db.from("productos").insert(datos);
-      if (error) throw new Error(error.code === "23505" ? "Ese código (SKU) ya existe." : "No se pudo guardar.");
+      if (error) {
+        throw new Error(error.code === "23505"
+          ? "Ese código (SKU) ya existe."
+          : "No se pudo guardar: " + explicarError(error, "guardar producto"));
+      }
+      // Si se cambió la foto, borra la anterior para no acumular archivos.
+      if (subida && anterior && anterior !== imagen_url) await borrarImagen(anterior);
+      subida = null;
 
       cerrarForm();
       toast("Producto guardado");
       await cargar();
     } catch (err) {
+      if (subida) await borrarImagen(subida.url); // la foto quedó huérfana
       mostrarError("f-error", err.message);
     } finally {
       $("f-guardar").disabled = false;
+      $("f-guardar").textContent = "Guardar";
     }
   });
 
@@ -275,7 +346,8 @@
     const p = productos.find((x) => x.id === id);
     if (!p || !confirm(`¿Eliminar "${p.nombre}"? Esta acción no se puede deshacer.`)) return;
     const { error } = await db.from("productos").delete().eq("id", id);
-    if (error) { toast("No se pudo eliminar"); return; }
+    if (error) { toast("No se pudo eliminar: " + explicarError(error, "eliminar producto")); return; }
+    await borrarImagen(p.imagen_url);
     toast("Producto eliminado");
     await cargar();
   }
