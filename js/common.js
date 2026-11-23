@@ -22,6 +22,11 @@
     })}`;
   }
 
+  // Minúsculas y sin tildes, para buscar "pantalon" y encontrar "Pantalón".
+  function norm(s) {
+    return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  }
+
   // Solo permite URLs http(s) para imágenes.
   function urlSegura(u) {
     try {
@@ -47,23 +52,6 @@
       </svg>`
     );
 
-  function mensajeWhatsApp(p, talla, color) {
-    const enlace = `${cfg.SITE_URL}?sku=${encodeURIComponent(p.sku)}`;
-    const lineas = [
-      "¡Hola, Meow Shop HN! 🐾 Me interesa este producto:",
-      "",
-      `• Producto: ${p.nombre}`,
-      `• Código: ${p.sku}`,
-      talla ? `• Talla: ${talla}` : null,
-      color ? `• Color: ${color}` : null,
-      `• Precio: ${precio(p.precio)}`,
-      `• Enlace: ${enlace}`,
-      "",
-      "¿Está disponible?"
-    ].filter((l) => l !== null);
-    return lineas.join("\n");
-  }
-
   let numeroWA = String(cfg.WHATSAPP_NUMBER).replace(/\D/g, "");
 
   // Lee el número guardado en Supabase (editable desde el panel).
@@ -75,9 +63,35 @@
     return numeroWA;
   }
 
+  // El código interno (SKU) es secreto para los clientes. El producto se identifica
+  // por nombre + enlace directo + foto; el vendedor ve el código al abrir el enlace con su sesión.
+  function mensajeWhatsApp(p, talla, color) {
+    const enlace = `${cfg.SITE_URL}?p=${encodeURIComponent(p.id)}#catalogo`;
+    const foto = p.imagenes?.[0] ? urlSegura(p.imagenes[0]) : "";
+    return [
+      "¡Hola, Meow Shop HN! 🐾 Me interesa este producto:",
+      "",
+      `• Producto: ${p.nombre}`,
+      talla ? `• Talla: ${talla}` : null,
+      color ? `• Color: ${color}` : null,
+      `• Precio: ${precio(p.precio)}`,
+      `• Ver producto: ${enlace}`,
+      foto ? `• Foto: ${foto}` : null,
+      "",
+      "¿Está disponible?"
+    ].filter((l) => l !== null).join("\n");
+  }
+
   function enlaceWhatsApp(p, talla, color) {
     return `https://wa.me/${numeroWA}?text=${encodeURIComponent(mensajeWhatsApp(p, talla, color))}`;
   }
 
-  window.Meow = { cfg, db, configurado, esc, precio, urlSegura, placeholder, enlaceWhatsApp, cargarWhatsApp };
+  function enlaceContacto() {
+    return `https://wa.me/${numeroWA}?text=${encodeURIComponent("¡Hola, Meow Shop HN! 🐾 Quisiera más información.")}`;
+  }
+
+  window.Meow = {
+    cfg, db, configurado, esc, precio, norm, urlSegura, placeholder,
+    enlaceWhatsApp, enlaceContacto, cargarWhatsApp
+  };
 })();

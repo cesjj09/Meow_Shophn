@@ -1,100 +1,180 @@
-// Tienda pública: catálogo, filtros, detalle y botón de WhatsApp.
+// Tienda pública: navegación, catálogo, filtros, detalle y botón de WhatsApp.
 (function () {
-  const { db, configurado, esc, precio, urlSegura, placeholder, enlaceWhatsApp } = window.Meow;
+  const { db, configurado, esc, precio, norm, urlSegura, placeholder, enlaceWhatsApp, enlaceContacto, cargarWhatsApp } = window.Meow;
   const $ = (id) => document.getElementById(id);
+
+  // Columnas públicas. El código (sku) NO está aquí: la base de datos no lo entrega a visitantes.
+  const COLS = "id,nombre,descripcion,precio,sexo,tallas,colores,imagenes,activo,created_at,producto_categorias(categoria_id)";
 
   let productos = [];
   let categorias = [];
-  let catActiva = null;
+  let esAdmin = false;
+  let catActiva = null;     // al volver a tocar la categoría, se desactiva
+  let sexoActivo = null;
+  let filtros = { q: "", min: null, max: null };
   let actual = null;
+  let ultimoFoco = null;
 
   $("anio").textContent = new Date().getFullYear();
 
-  function imagen(p) {
-    return (p.imagen_url && urlSegura(p.imagen_url)) || placeholder;
+  // ---------- Menú hamburguesa ----------
+  const hamb = $("hamb"), menu = $("menu");
+  function menuAbrir(abrir) {
+    menu.classList.toggle("abierto", abrir);
+    hamb.setAttribute("aria-expanded", String(abrir));
+    hamb.setAttribute("aria-label", abrir ? "Cerrar menú" : "Abrir menú");
   }
+  hamb.addEventListener("click", () => menuAbrir(!menu.classList.contains("abierto")));
+  menu.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => menuAbrir(false)));
+  document.addEventListener("click", (e) => {
+    if (!menu.contains(e.target) && !hamb.contains(e.target)) menuAbrir(false);
+  });
 
-  function nombreCategoria(id) {
-    return categorias.find((c) => c.id === id)?.nombre || "";
-  }
+  // ---------- Datos auxiliares ----------
+  const fotos = (p) => (p.imagenes || []).map(urlSegura).filter(Boolean);
+  const portada = (p) => fotos(p)[0] || placeholder;
+  const nombreCat = (id) => categorias.find((c) => c.id === id)?.nombre || "";
 
+  // ---------- Categorías y preferencias (lista horizontal con scroll) ----------
   function pintarChips() {
     const box = $("chips");
+    const usadas = new Set(productos.flatMap((p) => p.cats));
+    const cats = categorias.filter((c) => usadas.has(c.id));
+    const sexos = [...new Set(productos.map((p) => p.sexo))].sort();
     box.innerHTML = "";
-    const crear = (texto, id) => {
+    const crear = (texto, activo, alClick) => {
       const b = document.createElement("button");
+      b.type = "button";
       b.className = "chip";
       b.textContent = texto;
-      b.setAttribute("aria-pressed", String(catActiva === id));
-      b.addEventListener("click", () => { catActiva = id; pintarChips(); pintarGrid(); });
+      b.setAttribute("aria-pressed", String(activo));
+      b.addEventListener("click", alClick);
       box.appendChild(b);
-      box.appendChild(document.createTextNode(" "));
     };
-    crear("Todo", null);
-    categorias.forEach((c) => crear(c.nombre, c.id));
+    cats.forEach((c) => crear(c.nombre, catActiva === c.id, () => {
+      catActiva = catActiva === c.id ? null : c.id; // clic de nuevo = desactivar
+      pintarChips(); pintarGrid();
+    }));
+    if (cats.length && sexos.length) {
+      const sep = document.createElement("span");
+      sep.className = "sep";
+      sep.setAttribute("aria-hidden", "true");
+      box.appendChild(sep);
+    }
+    sexos.forEach((s) => crear(s, sexoActivo === s, () => {
+      sexoActivo = sexoActivo === s ? null : s;
+      pintarChips(); pintarGrid();
+    }));
+  }
+
+  // ---------- Tarjetas ----------
+  function filtrados() {
+    const q = norm(filtros.q);
+    return productos.filter((p) =>
+      (!q || norm(p.nombre).includes(q)) &&
+      (filtros.min === null || p.precio >= filtros.min) &&
+      (filtros.max === null || p.precio <= filtros.max) &&
+      (catActiva === null || p.cats.includes(catActiva)) &&
+      (sexoActivo === null || p.sexo === sexoActivo)
+    );
   }
 
   function pintarGrid() {
-    const q = $("buscar").value.trim().toLowerCase();
-    const lista = productos.filter((p) =>
-      (catActiva === null || p.categoria_id === catActiva) &&
-      (!q || p.nombre.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
-    );
-    const grid = $("grid");
+    const grid = $("productos");
+    if (!productos.length) {
+      grid.innerHTML = `<div class="estado">Pronto tendremos prendas nuevas 🐾</div>`;
+      return;
+    }
+    const lista = filtrados();
     if (!lista.length) {
-      grid.innerHTML = `<div class="estado">No encontramos productos 🐾</div>`;
+      grid.innerHTML = `<div class="estado">No encontramos productos con esos filtros 🐾</div>`;
       return;
     }
     grid.innerHTML = lista.map((p) => `
-      <article class="card">
-        <button class="foto" data-sku="${esc(p.sku)}" aria-label="Ver ${esc(p.nombre)}">
-          <img src="${esc(imagen(p))}" alt="${esc(p.nombre)}" loading="lazy">
-        </button>
+      <a class="card" href="?p=${encodeURIComponent(p.id)}#catalogo" data-id="${esc(p.id)}" aria-label="Ver ${esc(p.nombre)}">
+        <div class="foto"><img src="${esc(portada(p))}" alt="${esc(p.nombre)}" loading="lazy"></div>
+        ${fotos(p).length > 1 ? `<span class="nfotos">${fotos(p).length} fotos</span>` : ""}
         <div class="cuerpo">
-          <span class="sku">${esc(p.sku)}</span>
+          ${esAdmin && p.sku ? `<span class="codigo-admin">${esc(p.sku)}</span>` : ""}
           <h3>${esc(p.nombre)}</h3>
           <div class="precio">${esc(precio(p.precio))}</div>
-          <button class="btn chico" data-sku="${esc(p.sku)}">Ver y comprar</button>
         </div>
-      </article>`).join("");
-    grid.querySelectorAll("[data-sku]").forEach((el) =>
-      el.addEventListener("click", () => abrir(el.dataset.sku)));
+      </a>`).join("");
+    grid.querySelectorAll(".card").forEach((a) =>
+      a.addEventListener("click", (e) => {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return; // dejar abrir en pestaña nueva
+        e.preventDefault();
+        abrir(a.dataset.id, a);
+      }));
   }
 
+  // ---------- Buscador: Aplicar / Restablecer ----------
+  function numeroOnull(v) {
+    const t = String(v).trim();
+    if (t === "") return null;
+    const n = Number(t);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  $("buscador").addEventListener("submit", (e) => {
+    e.preventDefault();
+    filtros = { q: $("f-nombre").value, min: numeroOnull($("f-min").value), max: numeroOnull($("f-max").value) };
+    pintarGrid();
+  });
+  $("btn-restablecer").addEventListener("click", () => {
+    $("buscador").reset();
+    filtros = { q: "", min: null, max: null };
+    catActiva = null;
+    sexoActivo = null;
+    pintarChips();
+    pintarGrid();
+  });
+
+  // ---------- Detalle ----------
   function llenarSelect(sel, wrap, valores) {
-    wrap.style.display = valores?.length ? "" : "none";
+    wrap.hidden = !valores?.length;
     sel.innerHTML = (valores || []).map((v) => `<option>${esc(v)}</option>`).join("");
   }
 
   function actualizarWA() {
     if (!actual) return;
-    const talla = $("m-talla-wrap").style.display === "none" ? "" : $("m-talla").value;
-    const color = $("m-color-wrap").style.display === "none" ? "" : $("m-color").value;
+    const talla = $("m-talla-wrap").hidden ? "" : $("m-talla").value;
+    const color = $("m-color-wrap").hidden ? "" : $("m-color").value;
     $("m-wa").href = enlaceWhatsApp(actual, talla, color);
   }
 
-  function abrir(sku) {
-    const p = productos.find((x) => x.sku === sku);
+  function abrir(id, origen) {
+    const p = productos.find((x) => x.id === id);
     if (!p) return;
     actual = p;
-    $("m-img").src = imagen(p);
-    $("m-img").alt = p.nombre;
-    $("m-cat").textContent = nombreCategoria(p.categoria_id) || "Meow Shop HN";
-    $("m-titulo").textContent = p.nombre;
-    $("m-sku").textContent = `Código: ${p.sku}`;
+    ultimoFoco = origen || document.activeElement;
+    const lista = fotos(p);
+    $("m-collage").innerHTML = (lista.length ? lista : [placeholder])
+      .map((u, i) => `<img src="${esc(u)}" alt="${esc(p.nombre)} — foto ${i + 1}" loading="${i ? "lazy" : "eager"}">`).join("");
+    $("m-collage").scrollTo(0, 0);
+    $("m-nombre").textContent = p.nombre;
     $("m-precio").textContent = precio(p.precio);
-    $("m-desc").textContent = p.descripcion;
+    $("m-desc").textContent = p.descripcion || "";
+    $("m-desc").hidden = !p.descripcion;
+    $("m-cats").textContent = p.cats.map(nombreCat).filter(Boolean).join(", ") || "—";
+    $("m-sexo").textContent = p.sexo;
+    $("m-codigo").hidden = !(esAdmin && p.sku);
+    $("m-codigo").textContent = p.sku ? `Código: ${p.sku} (solo administrador)` : "";
     llenarSelect($("m-talla"), $("m-talla-wrap"), p.tallas);
     llenarSelect($("m-color"), $("m-color-wrap"), p.colores);
     actualizarWA();
     $("modal").classList.add("abierto");
-    history.replaceState(null, "", `?sku=${encodeURIComponent(p.sku)}`);
+    document.body.style.overflow = "hidden";
+    history.replaceState(null, "", `?p=${encodeURIComponent(p.id)}#catalogo`);
+    $("cerrar").focus();
   }
 
   function cerrar() {
+    if (!$("modal").classList.contains("abierto")) return;
     $("modal").classList.remove("abierto");
+    document.body.style.overflow = "";
     actual = null;
-    history.replaceState(null, "", location.pathname);
+    history.replaceState(null, "", location.pathname + "#catalogo");
+    if (ultimoFoco && ultimoFoco.focus) ultimoFoco.focus();
   }
 
   $("cerrar").addEventListener("click", cerrar);
@@ -102,31 +182,57 @@
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrar(); });
   $("m-talla").addEventListener("change", actualizarWA);
   $("m-color").addEventListener("change", actualizarWA);
-  $("buscar").addEventListener("input", pintarGrid);
 
+  // ---------- Si el administrador tiene sesión, puede ver los códigos ----------
+  async function detectarAdmin() {
+    try {
+      const { data } = await db.auth.getSession();
+      const user = data.session?.user;
+      if (!user) return;
+      const { data: fila } = await db.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
+      if (!fila) return;
+      const { data: skus } = await db.from("productos").select("id,sku");
+      if (!skus) return;
+      esAdmin = true;
+      const mapa = new Map(skus.map((s) => [s.id, s.sku]));
+      productos.forEach((p) => { p.sku = mapa.get(p.id); });
+      pintarGrid();
+      if (actual) abrir(actual.id, ultimoFoco);
+    } catch (err) { console.warn("No se pudo verificar sesión de admin", err); }
+  }
+
+  // ---------- Inicio ----------
   async function iniciar() {
     if (!configurado) {
-      $("aviso").innerHTML = `<div class="aviso"><b>Falta configurar Supabase.</b> Edita <code>js/config.js</code> y pega tu clave <i>anon</i> pública.</div>`;
-      $("grid").innerHTML = "";
+      $("aviso").innerHTML = `<div class="aviso"><b>Falta configurar Supabase.</b> Edita <code>js/config.js</code> y pega tu clave pública.</div>`;
       return;
     }
-    $("grid").innerHTML = `<div class="estado">Cargando catálogo…</div>`;
-    await window.Meow.cargarWhatsApp();
+    $("productos").innerHTML = `<div class="estado">Cargando catálogo…</div>`;
+    await cargarWhatsApp();
+    $("contacto-wa").href = enlaceContacto();
+
     const [cats, prods] = await Promise.all([
       db.from("categorias").select("id,nombre").order("nombre"),
-      db.from("productos").select("*").eq("activo", true).order("created_at", { ascending: false })
+      db.from("productos").select(COLS).eq("activo", true).order("created_at", { ascending: false })
     ]);
     if (cats.error || prods.error) {
-      $("grid").innerHTML = `<div class="estado">No se pudo cargar el catálogo. Intenta más tarde.</div>`;
+      console.error(cats.error || prods.error);
+      $("productos").innerHTML = `<div class="estado">No se pudo cargar el catálogo. Intenta más tarde.</div>`;
       return;
     }
     categorias = cats.data;
-    productos = prods.data;
+    productos = prods.data.map((p) => ({
+      ...p,
+      precio: Number(p.precio),
+      cats: (p.producto_categorias || []).map((x) => x.categoria_id)
+    }));
     pintarChips();
     pintarGrid();
-    // Enlace directo desde WhatsApp: ?sku=MS-0001
-    const sku = new URLSearchParams(location.search).get("sku");
-    if (sku) abrir(sku);
+
+    // Enlace directo desde WhatsApp: ?p=<id del producto>
+    const id = new URLSearchParams(location.search).get("p");
+    if (id) abrir(id);
+    detectarAdmin();
   }
   iniciar();
 })();

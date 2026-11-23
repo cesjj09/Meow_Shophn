@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>Panel | Meow Shop HN</title>
+  <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -24,29 +25,29 @@
   <div id="vista-panel" hidden>
     <header class="header">
       <div class="container">
-        <a class="brand" href="./"><span>Meow Shop <em>HN</em></span></a>
-        <div><span id="quien" class="ayuda"></span> <button class="btn sec chico" id="salir">Cerrar sesión</button></div>
+        <a class="brand" href="./"><img src="img/logo-small.jpg" alt="" width="46" height="46"><span>Meow Shop <em>HN</em> · Panel</span></a>
+        <div><span id="quien" class="ayuda"></span> <button class="btn sec chico" id="salir" type="button">Cerrar sesión</button></div>
       </div>
     </header>
     <main class="container">
       <div class="panel-barra">
         <div class="tabs">
-          <button class="chip" id="tab-prod" aria-pressed="true">Productos</button>
-          <button class="chip" id="tab-cat" aria-pressed="false">Categorías</button>
-          <button class="chip" id="tab-aj" aria-pressed="false">Ajustes</button>
+          <button class="chip" id="tab-prod" type="button" aria-pressed="true">Productos</button>
+          <button class="chip" id="tab-cat" type="button" aria-pressed="false">Categorías</button>
+          <button class="chip" id="tab-aj" type="button" aria-pressed="false">Ajustes</button>
         </div>
-        <button class="btn" id="nuevo">+ Nuevo producto</button>
+        <button class="btn" id="nuevo" type="button">+ Nuevo producto</button>
       </div>
 
       <div id="sec-prod" class="tabla-wrap">
         <table>
-          <thead><tr><th>Foto</th><th>Código</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Foto</th><th>Código</th><th>Producto</th><th>Categorías</th><th>Sexo</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="filas"></tbody>
         </table>
       </div>
 
       <div id="sec-aj" hidden>
-        <form id="form-aj" class="formulario" style="background:#fff;border:1px solid var(--borde);border-radius:var(--radio);max-width:460px">
+        <form id="form-aj" class="formulario" style="background:var(--marfil);border:1px solid var(--borde);border-radius:var(--radio);max-width:460px">
           <h2 style="margin:0;font-size:1.2rem">Número de WhatsApp de ventas</h2>
           <div>
             <label for="aj-wa">Número (código de país + número)</label>
@@ -62,7 +63,7 @@
           <input id="cat-nombre" placeholder="Nueva categoría" maxlength="60" required style="max-width:280px">
           <button class="btn" type="submit">Agregar</button>
         </form>
-        <div class="tabla-wrap"><table><thead><tr><th>Categoría</th><th>Acciones</th></tr></thead><tbody id="filas-cat"></tbody></table></div>
+        <div class="tabla-wrap"><table style="min-width:0"><thead><tr><th>Categoría</th><th>Acciones</th></tr></thead><tbody id="filas-cat"></tbody></table></div>
       </div>
     </main>
   </div>
@@ -75,11 +76,21 @@
         <div id="f-error" class="msg-error" role="alert" hidden></div>
         <div class="fila">
           <div><label for="f-nombre">Nombre *</label><input id="f-nombre" required maxlength="120"></div>
-          <div><label for="f-sku">Código (SKU)</label><input id="f-sku" maxlength="30" placeholder="Automático si lo dejas vacío"></div>
+          <div><label for="f-sku">Código (SKU) · solo lo ves tú</label><input id="f-sku" maxlength="30" placeholder="Automático si lo dejas vacío"></div>
         </div>
         <div class="fila">
           <div><label for="f-precio">Precio (L) *</label><input id="f-precio" type="number" min="0" step="0.01" required></div>
-          <div><label for="f-cat">Categoría</label><select id="f-cat"></select></div>
+          <div>
+            <label for="f-sexo">Sexo</label>
+            <select id="f-sexo">
+              <option>Unisex</option><option>Mujer</option><option>Hombre</option><option>Niña</option><option>Niño</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label id="f-cats-label">Categorías</label>
+          <div class="checks" id="f-cats" role="group" aria-labelledby="f-cats-label"></div>
+          <div class="ayuda">Puedes marcar varias. Si falta una, créala en la pestaña Categorías.</div>
         </div>
         <div><label for="f-desc">Descripción</label><textarea id="f-desc" rows="3" maxlength="1500"></textarea></div>
         <div class="fila">
@@ -87,12 +98,14 @@
           <div><label for="f-colores">Colores</label><input id="f-colores" placeholder="Negro, Rosa"><div class="ayuda">Separados por coma</div></div>
         </div>
         <div>
-          <label for="f-img">Foto del producto</label>
-          <input id="f-img" type="file" accept="image/*">
-          <div class="ayuda">JPG, PNG o WebP. Se reduce automáticamente, no importa el peso.</div>
-          <div class="ayuda">O pega una URL de imagen:</div>
-          <input id="f-url" type="url" placeholder="https://…">
-          <img id="f-prev" class="vista-previa" alt="Vista previa" hidden style="margin-top:8px">
+          <label for="f-img">Fotos del producto (hasta 8)</label>
+          <input id="f-img" type="file" accept="image/*" multiple>
+          <div class="ayuda">Puedes elegir varias a la vez. Se reducen automáticamente, no importa el peso. La primera es la portada.</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="f-url" type="url" placeholder="…o pega la URL de una imagen (https://…)">
+            <button type="button" class="btn sec chico" id="f-url-add" style="white-space:nowrap">Agregar URL</button>
+          </div>
+          <div class="miniaturas" id="f-minis" aria-live="polite"></div>
         </div>
         <label style="display:flex;gap:8px;align-items:center"><input id="f-activo" type="checkbox" style="width:auto" checked> Visible en la tienda</label>
         <div style="display:flex;gap:10px;justify-content:flex-end">

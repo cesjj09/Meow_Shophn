@@ -4,65 +4,149 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Meow Shop HN | Tienda de ropa</title>
-  <meta name="description" content="Meow Shop HN: ropa con estilo. Elige tu prenda y compra por WhatsApp.">
+  <meta name="description" content="Meow Shop HN: ropa con estilo, envíos a toda Honduras. Elige tu prenda y compra por WhatsApp.">
   <meta name="theme-color" content="#F6C8CC">
+  <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <header class="header">
-    <div class="container">
-      <a class="brand" href="./" aria-label="Meow Shop HN, inicio">
-        <svg viewBox="0 0 64 64" aria-hidden="true">
-          <path d="M10 8l14 12h16L54 8v26c0 14-10 22-22 22S10 48 10 34z" fill="#F6C8CC" stroke="#241D1E" stroke-width="3" stroke-linejoin="round"/>
-          <circle cx="24" cy="32" r="3" fill="#241D1E"/><circle cx="40" cy="32" r="3" fill="#241D1E"/>
-          <path d="M29 40q3 3 6 0" fill="none" stroke="#241D1E" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="32" cy="37" r="2" fill="#E58D9A"/>
-        </svg>
+  <!-- Barra de navegación -->
+  <header class="nav">
+    <div class="container nav-in">
+      <a class="brand" href="#inicio" aria-label="Meow Shop HN, inicio">
+        <img src="img/logo-small.jpg" alt="Logotipo de Meow Shop HN" width="46" height="46">
         <span>Meow Shop <em>HN</em></span>
       </a>
-      <nav class="nav" aria-label="Principal">
+      <button class="hamb" id="hamb" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="menu" id="menu" aria-label="Principal">
+        <a href="#inicio">Inicio</a>
         <a href="#catalogo">Catálogo</a>
+        <a href="#quienes-somos">Quiénes somos</a>
+        <a href="#contacto">Contáctanos</a>
       </nav>
     </div>
   </header>
 
   <main>
-    <section class="hero">
-      <div class="container">
-        <span class="etiqueta">Nueva colección</span>
-        <h1>Ropa con estilo, directo a tu WhatsApp 🐾</h1>
-        <p>Elige tu prenda, toca “Comprar por WhatsApp” y te atendemos con el producto ya identificado.</p>
-        <a class="btn" href="#catalogo">Ver catálogo</a>
+    <!-- Inicio -->
+    <section class="hero" id="inicio">
+      <div class="container hero-in">
+        <div>
+          <span class="etiqueta">Nueva colección</span>
+          <h1>Tu estilo, con <em>toque felino</em> <svg class="pata" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="42" rx="14" ry="11"/><ellipse cx="14" cy="28" rx="6" ry="8"/><ellipse cx="25" cy="16" rx="6" ry="8.5"/><ellipse cx="39" cy="16" rx="6" ry="8.5"/><ellipse cx="50" cy="28" rx="6" ry="8"/></svg></h1>
+          <p>Ropa seleccionada con cariño para que luzcas lo que más te gusta. Elige tu prenda y compra directo por WhatsApp.</p>
+          <div class="hero-botones">
+            <a class="btn grande" href="#catalogo">Ver catálogo</a>
+            <a class="btn sec grande" href="#contacto">Contacto</a>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="marco"><img src="img/logo.jpg" alt="Gato asomándose sobre el logotipo de Meow Shop HN" width="420" height="420"></div>
+        </div>
       </div>
     </section>
 
-    <section class="container" id="catalogo" aria-labelledby="t-cat">
-      <h2 id="t-cat" class="sr-only">Catálogo</h2>
-      <div id="aviso"></div>
-      <div class="filtros">
-        <label class="sr-only" for="buscar">Buscar producto</label>
-        <input id="buscar" type="search" placeholder="Buscar por nombre o código…">
-        <div id="chips" role="group" aria-label="Categorías"></div>
+    <!-- Texto infinito -->
+    <div class="marquee">
+      <div class="marquee-track">
+        <span>Lleva tu ropa preferida al mejor precio de todos. Meow Shop a la disposición.</span>
+        <span aria-hidden="true">Lleva tu ropa preferida al mejor precio de todos. Meow Shop a la disposición.</span>
       </div>
-      <div class="grid" id="grid" aria-live="polite"></div>
+    </div>
+
+    <!-- Valores -->
+    <section class="seccion" aria-labelledby="t-valores">
+      <div class="container">
+        <h2 id="t-valores" class="seccion-titulo">Nuestros valores</h2>
+        <p class="seccion-sub">Lo que nos mueve cada vez que preparas tu pedido con nosotros.</p>
+        <div class="valores">
+          <article class="valor">
+            <div class="icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></div>
+            <h3>Confianza</h3>
+            <p>Te decimos lo que ves: fotos reales, precios claros y atención directa.</p>
+          </article>
+          <article class="valor">
+            <div class="icono"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg></div>
+            <h3>Responsabilidad</h3>
+            <p>Cumplimos lo prometido y te acompañamos hasta que tu pedido llegue.</p>
+          </article>
+          <article class="valor">
+            <div class="icono"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.4 5.6 6.1.5-4.6 4 1.4 6L12 16l-5.3 3.1 1.4-6-4.6-4 6.1-.5z"/></svg></div>
+            <h3>Elegancia</h3>
+            <p>Prendas con estilo para que te sientas bien en cualquier ocasión.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Catálogo -->
+    <section class="seccion catalogo" id="catalogo" aria-labelledby="t-cat">
+      <div class="container">
+        <h2 id="t-cat">Catálogo</h2>
+        <p class="seccion-sub">Toca una prenda para ver sus fotos y comprarla por WhatsApp.</p>
+        <div id="aviso"></div>
+
+        <form class="buscador" id="buscador" role="search">
+          <div class="campo nombre"><label for="f-nombre">Nombre</label><input id="f-nombre" type="search" placeholder="Buscar por nombre…" autocomplete="off"></div>
+          <div class="campo num"><label for="f-min">Precio mín.</label><input id="f-min" type="number" min="0" step="1" inputmode="decimal" placeholder="0"></div>
+          <div class="campo num"><label for="f-max">Precio máx.</label><input id="f-max" type="number" min="0" step="1" inputmode="decimal" placeholder="Sin límite"></div>
+          <button class="btn" type="submit">Aplicar</button>
+          <button class="btn sec" type="button" id="btn-restablecer">Restablecer</button>
+        </form>
+
+        <div class="chips" id="chips" role="group" aria-label="Categorías y preferencias"></div>
+        <div class="productos" id="productos" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- Quiénes somos -->
+    <section class="seccion" id="quienes-somos" aria-labelledby="t-quienes">
+      <div class="container">
+        <div class="about">
+          <div>
+            <h2 id="t-quienes">Conózcanos: Quiénes somos</h2>
+            <p>Somos un pequeño emprendimiento donde soñamos con que obtengas lo que más te guste.</p>
+          </div>
+          <div class="logo-box"><img src="img/logo.jpg" alt="Logotipo de Meow Shop HN" width="360" height="360" loading="lazy"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contáctanos -->
+    <section class="seccion contacto" id="contacto" aria-labelledby="t-contacto">
+      <div class="container">
+        <h2 id="t-contacto" class="seccion-titulo">Contáctanos</h2>
+        <p>¿Dudas sobre una prenda, tallas o envíos a toda Honduras? Escríbenos y con gusto te ayudamos.</p>
+        <a class="btn grande" id="contacto-wa" href="#contacto" target="_blank" rel="noopener">💬 Escríbenos por WhatsApp</a>
+      </div>
     </section>
   </main>
 
-  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="m-titulo">
+  <!-- Detalle del producto -->
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="m-nombre">
     <div class="caja">
-      <button class="btn sec chico cerrar" id="cerrar" aria-label="Cerrar">✕</button>
+      <button class="btn sec chico cerrar" id="cerrar" type="button" aria-label="Cerrar">✕</button>
       <div class="detalle">
-        <div class="foto"><img id="m-img" alt=""></div>
+        <div class="collage" id="m-collage" tabindex="0" aria-label="Fotos del producto"></div>
         <div class="info">
-          <span class="etiqueta" id="m-cat"></span>
-          <h2 id="m-titulo"></h2>
-          <div class="sku" id="m-sku"></div>
-          <div class="precio" id="m-precio" style="font-weight:800;font-size:1.4rem"></div>
+          <span class="codigo-admin" id="m-codigo" hidden></span>
+          <h2 id="m-nombre"></h2>
+          <p class="precio" id="m-precio"></p>
           <p id="m-desc"></p>
-          <div id="m-talla-wrap"><label for="m-talla">Talla</label><select id="m-talla"></select></div>
-          <div id="m-color-wrap"><label for="m-color">Color</label><select id="m-color"></select></div>
-          <a class="btn" id="m-wa" target="_blank" rel="noopener">💬 Comprar por WhatsApp</a>
-          <div class="ayuda">Se abrirá WhatsApp con el producto, código, talla y color ya escritos.</div>
+          <dl class="datos">
+            <div><dt>Categorías</dt><dd id="m-cats"></dd></div>
+            <div><dt>Sexo</dt><dd id="m-sexo"></dd></div>
+            <div id="m-talla-wrap"><dt><label for="m-talla">Talla</label></dt><dd><select id="m-talla"></select></dd></div>
+            <div id="m-color-wrap"><dt><label for="m-color">Color</label></dt><dd><select id="m-color"></select></dd></div>
+          </dl>
+          <div class="nota">
+            <h1>¡Envíos a toda Honduras!</h1>
+            <p>No nos hacemos responsables por restricciones por parte de la paquetería.</p>
+          </div>
+          <a class="btn grande" id="m-wa" target="_blank" rel="noopener">💬 Comprar por WhatsApp</a>
+          <div class="ayuda">Se abrirá WhatsApp con el producto, la talla, el color y el enlace ya escritos.</div>
         </div>
       </div>
     </div>
