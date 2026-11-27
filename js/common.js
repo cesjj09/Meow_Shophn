@@ -52,20 +52,30 @@
       </svg>`
     );
 
-  let numeroWA = String(cfg.WHATSAPP_NUMBER).replace(/\D/g, "");
+  // ---------- Números de WhatsApp ----------
+  // Lista pública: solo id y número (el nombre del número es interno y no se entrega a visitantes).
+  const respaldo = String(cfg.WHATSAPP_NUMBER).replace(/\D/g, "");
+  let numeros = []; // [{ id, numero }] ordenados por id; el primero es el principal
 
-  // Lee el número guardado en Supabase (editable desde el panel).
-  async function cargarWhatsApp() {
-    if (!db) return numeroWA;
-    const { data } = await db.from("configuracion").select("valor").eq("clave", "whatsapp").maybeSingle();
-    const n = String(data?.valor || "").replace(/\D/g, "");
-    if (n.length >= 8) numeroWA = n;
-    return numeroWA;
+  async function cargarNumeros() {
+    if (!db) return numeros;
+    const { data, error } = await db.from("numeros_whatsapp").select("id,numero").order("id");
+    if (!error && data?.length) {
+      numeros = data.map((n) => ({ id: n.id, numero: String(n.numero).replace(/\D/g, "") }));
+    }
+    return numeros;
+  }
+
+  const numeroPrincipal = () => numeros[0]?.numero || respaldo;
+
+  // Número asignado al producto; si no tiene (o se borró), el principal.
+  function numeroDe(p) {
+    return numeros.find((n) => n.id === p?.numero_id)?.numero || numeroPrincipal();
   }
 
   // El código interno (SKU) es secreto para los clientes. El producto se identifica
   // por nombre + enlace directo + foto; el vendedor ve el código al abrir el enlace con su sesión.
-  function mensajeWhatsApp(p, talla, color) {
+  function mensajeWhatsApp(p, talla, colores) {
     const enlace = `${cfg.SITE_URL}?p=${encodeURIComponent(p.id)}#catalogo`;
     const foto = p.imagenes?.[0] ? urlSegura(p.imagenes[0]) : "";
     return [
@@ -73,7 +83,7 @@
       "",
       `• Producto: ${p.nombre}`,
       talla ? `• Talla: ${talla}` : null,
-      color ? `• Color: ${color}` : null,
+      colores ? `• Color(es): ${colores}` : null,
       `• Precio: ${precio(p.precio)}`,
       `• Ver producto: ${enlace}`,
       foto ? `• Foto: ${foto}` : null,
@@ -82,16 +92,16 @@
     ].filter((l) => l !== null).join("\n");
   }
 
-  function enlaceWhatsApp(p, talla, color) {
-    return `https://wa.me/${numeroWA}?text=${encodeURIComponent(mensajeWhatsApp(p, talla, color))}`;
+  function enlaceWhatsApp(p, talla, colores) {
+    return `https://wa.me/${numeroDe(p)}?text=${encodeURIComponent(mensajeWhatsApp(p, talla, colores))}`;
   }
 
   function enlaceContacto() {
-    return `https://wa.me/${numeroWA}?text=${encodeURIComponent("¡Hola, Meow Shop HN! 🐾 Quisiera más información.")}`;
+    return `https://wa.me/${numeroPrincipal()}?text=${encodeURIComponent("¡Hola, Meow Shop HN! 🐾 Quisiera más información.")}`;
   }
 
   window.Meow = {
     cfg, db, configurado, esc, precio, norm, urlSegura, placeholder,
-    enlaceWhatsApp, enlaceContacto, cargarWhatsApp
+    enlaceWhatsApp, enlaceContacto, cargarNumeros
   };
 })();

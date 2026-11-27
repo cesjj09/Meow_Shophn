@@ -41,21 +41,20 @@
 
       <div id="sec-prod" class="tabla-wrap">
         <table>
-          <thead><tr><th>Foto</th><th>Código</th><th>Producto</th><th>Categorías</th><th>Sexo</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Foto</th><th>Código</th><th>Producto</th><th>Categorías</th><th>Sexo</th><th>Vendedor</th><th>Estado</th><th>Unid.</th><th>Precio</th><th>Situación</th><th>Acciones</th></tr></thead>
           <tbody id="filas"></tbody>
         </table>
       </div>
 
       <div id="sec-aj" hidden>
-        <form id="form-aj" class="formulario" style="background:var(--marfil);border:1px solid var(--borde);border-radius:var(--radio);max-width:460px">
-          <h2 style="margin:0;font-size:1.2rem">Número de WhatsApp de ventas</h2>
-          <div>
-            <label for="aj-wa">Número (código de país + número)</label>
-            <input id="aj-wa" inputmode="numeric" placeholder="50488875357" required>
-            <div class="ayuda">Solo dígitos, ej. 504 + 8 dígitos. El cambio se aplica de inmediato en la tienda.</div>
-          </div>
-          <button class="btn" type="submit">Guardar número</button>
+        <h2 style="margin:0 0 4px;font-size:1.3rem">Números de WhatsApp</h2>
+        <p class="ayuda" style="margin:0 0 12px">El primero de la lista es el principal: se usa en «Contáctanos» y en los productos sin número asignado. Cada producto puede usar un número distinto.</p>
+        <form id="form-num" class="panel-barra" style="justify-content:flex-start">
+          <input id="num-nombre" placeholder="Nombre (ej. Abigail)" maxlength="60" required style="max-width:220px" aria-label="Nombre del número">
+          <input id="num-numero" placeholder="Número: 504XXXXXXXX" inputmode="numeric" required style="max-width:220px" aria-label="Número de WhatsApp">
+          <button class="btn" type="submit">Agregar número</button>
         </form>
+        <div class="tabla-wrap"><table style="min-width:0"><thead><tr><th>Nombre</th><th>Número</th><th>Acciones</th></tr></thead><tbody id="filas-num"></tbody></table></div>
       </div>
 
       <div id="sec-cat" hidden>
@@ -87,6 +86,10 @@
             </select>
           </div>
         </div>
+        <div class="fila">
+          <div><label for="f-estado">Estado del producto *</label><select id="f-estado" required></select></div>
+          <div><label for="f-unidades">Unidades *</label><input id="f-unidades" type="number" min="1" step="1" value="1" inputmode="numeric" required></div>
+        </div>
         <div>
           <label id="f-cats-label">Categorías</label>
           <div class="checks" id="f-cats" role="group" aria-labelledby="f-cats-label"></div>
@@ -94,9 +97,26 @@
         </div>
         <div><label for="f-desc">Descripción</label><textarea id="f-desc" rows="3" maxlength="1500"></textarea></div>
         <div class="fila">
-          <div><label for="f-tallas">Tallas</label><input id="f-tallas" placeholder="S, M, L"><div class="ayuda">Separadas por coma</div></div>
-          <div><label for="f-colores">Colores</label><input id="f-colores" placeholder="Negro, Rosa"><div class="ayuda">Separados por coma</div></div>
+          <div>
+            <label for="f-talla">Talla</label>
+            <select id="f-talla"></select>
+            <div class="ayuda" id="f-talla-ayuda" hidden></div>
+          </div>
+          <div><label for="f-colores">Color(es) mayoritario(s):</label><input id="f-colores" placeholder="Negro, Rosa"><div class="ayuda">Separados por coma</div></div>
         </div>
+
+        <div class="interno">
+          <h3>Solo administración (el comprador no lo ve)</h3>
+          <div class="fila">
+            <div><label for="f-vendedor">Vendedor *</label><select id="f-vendedor" required></select></div>
+            <div><label for="f-numero">Número de WhatsApp</label><select id="f-numero"></select></div>
+          </div>
+          <div>
+            <label id="f-disp-label">Disponibilidad</label>
+            <label class="check-linea"><input id="f-disp" type="checkbox" checked aria-labelledby="f-disp-label f-disp-txt"> <span id="f-disp-txt">No vendido</span></label>
+          </div>
+        </div>
+
         <div>
           <label for="f-img">Fotos del producto (hasta 8)</label>
           <input id="f-img" type="file" accept="image/*" multiple>
@@ -107,7 +127,10 @@
           </div>
           <div class="miniaturas" id="f-minis" aria-live="polite"></div>
         </div>
-        <label style="display:flex;gap:8px;align-items:center"><input id="f-activo" type="checkbox" style="width:auto" checked> Visible en la tienda</label>
+        <div>
+          <label class="check-linea"><input id="f-activo" type="checkbox" checked> Visible en la tienda</label>
+          <div class="ayuda" id="f-activo-ayuda" hidden>Oculto automáticamente porque el producto está vendido.</div>
+        </div>
         <div style="display:flex;gap:10px;justify-content:flex-end">
           <button type="button" class="btn sec" id="f-cancelar">Cancelar</button>
           <button type="submit" class="btn" id="f-guardar">Guardar</button>

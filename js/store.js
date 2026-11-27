@@ -1,10 +1,11 @@
 // Tienda pública: navegación, catálogo, filtros, detalle y botón de WhatsApp.
 (function () {
-  const { db, configurado, esc, precio, norm, urlSegura, placeholder, enlaceWhatsApp, enlaceContacto, cargarWhatsApp } = window.Meow;
+  const { db, configurado, esc, precio, norm, urlSegura, placeholder, enlaceWhatsApp, enlaceContacto, cargarNumeros } = window.Meow;
   const $ = (id) => document.getElementById(id);
 
   // Columnas públicas. El código (sku) NO está aquí: la base de datos no lo entrega a visitantes.
-  const COLS = "id,nombre,descripcion,precio,sexo,tallas,colores,imagenes,activo,created_at,producto_categorias(categoria_id)";
+  // Tampoco están vendedor ni disponibilidad: son internos del administrador.
+  const COLS = "id,nombre,descripcion,precio,sexo,tallas,colores,imagenes,activo,created_at,estado_producto,unidades,numero_id,producto_categorias(categoria_id)";
 
   let productos = [];
   let categorias = [];
@@ -42,19 +43,21 @@
     const cats = categorias.filter((c) => usadas.has(c.id));
     const sexos = [...new Set(productos.map((p) => p.sexo))].sort();
     box.innerHTML = "";
-    const crear = (texto, activo, alClick) => {
+    const crear = (texto, activo, alClick, cuenta) => {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "chip";
-      b.textContent = texto;
+      b.innerHTML = esc(texto) + (cuenta !== undefined ? ` <span class="cuenta" aria-label="${cuenta} productos">${cuenta}</span>` : "");
       b.setAttribute("aria-pressed", String(activo));
       b.addEventListener("click", alClick);
       box.appendChild(b);
     };
+    // Contador: cuántos productos visibles tiene cada categoría
+    const cuentaDe = (id) => productos.filter((p) => p.cats.includes(id)).length;
     cats.forEach((c) => crear(c.nombre, catActiva === c.id, () => {
       catActiva = catActiva === c.id ? null : c.id; // clic de nuevo = desactivar
       pintarChips(); pintarGrid();
-    }));
+    }, cuentaDe(c.id)));
     if (cats.length && sexos.length) {
       const sep = document.createElement("span");
       sep.className = "sep";
@@ -130,16 +133,22 @@
   });
 
   // ---------- Detalle ----------
-  function llenarSelect(sel, wrap, valores) {
-    wrap.hidden = !valores?.length;
-    sel.innerHTML = (valores || []).map((v) => `<option>${esc(v)}</option>`).join("");
+  // Talla: texto si el producto tiene una sola; lista para elegir si (por datos antiguos) tiene varias.
+  function pintarTalla(p) {
+    const t = p.tallas || [];
+    $("m-talla-wrap").hidden = !t.length;
+    $("m-talla-txt").hidden = t.length > 1;
+    $("m-talla").hidden = t.length <= 1;
+    $("m-talla-txt").textContent = t[0] || "";
+    $("m-talla").innerHTML = t.map((v) => `<option>${esc(v)}</option>`).join("");
   }
 
   function actualizarWA() {
     if (!actual) return;
-    const talla = $("m-talla-wrap").hidden ? "" : $("m-talla").value;
-    const color = $("m-color-wrap").hidden ? "" : $("m-color").value;
-    $("m-wa").href = enlaceWhatsApp(actual, talla, color);
+    const t = actual.tallas || [];
+    const talla = t.length > 1 ? $("m-talla").value : (t[0] || "");
+    const colores = (actual.colores || []).join(", ");
+    $("m-wa").href = enlaceWhatsApp(actual, talla, colores);
   }
 
   function abrir(id, origen) {
@@ -159,8 +168,11 @@
     $("m-sexo").textContent = p.sexo;
     $("m-codigo").hidden = !(esAdmin && p.sku);
     $("m-codigo").textContent = p.sku ? `Código: ${p.sku} (solo administrador)` : "";
-    llenarSelect($("m-talla"), $("m-talla-wrap"), p.tallas);
-    llenarSelect($("m-color"), $("m-color-wrap"), p.colores);
+    $("m-estado").textContent = p.estado_producto || "—";
+    $("m-unidades").textContent = p.unidades ?? 1;
+    pintarTalla(p);
+    $("m-color-wrap").hidden = !(p.colores || []).length;
+    $("m-colores").textContent = (p.colores || []).join(", ");
     actualizarWA();
     $("modal").classList.add("abierto");
     document.body.style.overflow = "hidden";
@@ -181,7 +193,6 @@
   $("modal").addEventListener("click", (e) => { if (e.target === $("modal")) cerrar(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") cerrar(); });
   $("m-talla").addEventListener("change", actualizarWA);
-  $("m-color").addEventListener("change", actualizarWA);
 
   // ---------- Si el administrador tiene sesión, puede ver los códigos ----------
   async function detectarAdmin() {
@@ -208,7 +219,7 @@
       return;
     }
     $("productos").innerHTML = `<div class="estado">Cargando catálogo…</div>`;
-    await cargarWhatsApp();
+    await cargarNumeros();
     $("contacto-wa").href = enlaceContacto();
 
     const [cats, prods] = await Promise.all([

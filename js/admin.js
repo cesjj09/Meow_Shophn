@@ -1,4 +1,4 @@
-// Panel de administración: login + CRUD de productos (varias fotos y categorías) y categorías.
+// Panel de administración: login + CRUD de productos, categorías y números de WhatsApp.
 (function () {
   const { cfg, db, configurado, esc, precio, urlSegura, placeholder } = window.Meow;
   const $ = (id) => document.getElementById(id);
@@ -6,12 +6,22 @@
   const LADO_MAX = 1280;              // las fotos se reducen a este tamaño antes de subir
   const MAX_FOTOS = 8;
 
+  // Listas fijas (la base de datos solo acepta estos valores)
+  const VENDEDORES = ["Abigail", "Luis", "Montserrath", "Juan"];
+  const ESTADOS = ["Nuevo", "Semi-nuevo", "Buen estado"];
+  const TALLAS = ["<XS", "XS", "S", "M", "L", "XL", ">XL"];
+
   let productos = [];
   let categorias = [];
+  let numeros = [];      // [{ id, nombre, numero }] ordenados por id; el primero es el principal
   let editandoId = null;
-  let fotosForm = []; // [{ tipo: "url"|"file", src, file? }] en el orden que se mostrará
+  let editandoCat = null;
+  let editandoNum = null;
+  let visibleAntes = true; // para restaurar "Visible" si se desmarca "Vendido"
+  let fotosForm = [];      // [{ tipo: "url"|"file", src, file? }] en el orden que se mostrará
 
   function toast(texto) {
+    document.querySelectorAll(".toast").forEach((x) => x.remove()); // un solo aviso a la vez
     const t = document.createElement("div");
     t.className = "toast";
     t.textContent = texto;
@@ -24,6 +34,9 @@
     el.hidden = !texto;
   }
   const lista = (txt) => txt.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 20);
+  const opciones = (arr, vacio) =>
+    (vacio !== undefined ? `<option value="">${esc(vacio)}</option>` : "") +
+    arr.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
 
   // Convierte un error de Supabase en un mensaje que se pueda entender y corregir.
   function explicarError(error, contexto) {
@@ -36,7 +49,7 @@
       return `Falta una tabla o columna en Supabase: ${msg}`;
     if (/bucket not found/i.test(msg)) return "No existe el bucket de imágenes «productos».";
     if (code === "23505") return "Ya existe un registro con ese valor (duplicado).";
-    if (code === "23514") return "Un dato no cumple las reglas (revisa longitud del nombre y precio).";
+    if (code === "23514") return "Un dato no cumple las reglas permitidas.";
     if (/jwt|expired/i.test(msg)) return "Tu sesión venció. Cierra sesión y entra de nuevo.";
     return `${msg}${code ? ` (${code})` : ""}`;
   }
@@ -119,51 +132,54 @@
 
   // ---------- Datos ----------
   async function cargar() {
-    const [c, p] = await Promise.all([
+    const [c, p, n] = await Promise.all([
       db.from("categorias").select("*").order("nombre"),
-      db.from("productos").select("*, producto_categorias(categoria_id)").order("created_at", { ascending: false })
+      db.from("productos").select("*, producto_categorias(categoria_id)").order("created_at", { ascending: false }),
+      db.from("numeros_whatsapp").select("*").order("id")
     ]);
-    if (c.error || p.error) { toast("Error al cargar: " + explicarError(c.error || p.error, "cargar")); return; }
+    const fallo = c.error || p.error || n.error;
+    if (fallo) { toast("Error al cargar: " + explicarError(fallo, "cargar")); return; }
     categorias = c.data;
+    numeros = n.data;
     productos = p.data.map((x) => ({ ...x, cats: (x.producto_categorias || []).map((r) => r.categoria_id) }));
     pintarProductos();
     pintarCategorias();
+    pintarNumeros();
   }
 
   const nombreCat = (id) => categorias.find((c) => c.id === id)?.nombre || "";
   const portadaDe = (p) => ((p.imagenes || []).map(urlSegura).filter(Boolean)[0]) || placeholder;
+  const verNumero = (n) => `+${n.numero}`;
 
   function pintarProductos() {
     $("filas").innerHTML = productos.length
-      ? productos.map((p) => `
+      ? productos.map((p) => {
+        const situacion = !p.disponible
+          ? `<span class="insignia off">Vendido</span>`
+          : `<span class="insignia ${p.activo ? "" : "off"}">${p.activo ? "Visible" : "Oculto"}</span>`;
+        return `
         <tr>
           <td><img src="${esc(portadaDe(p))}" alt=""></td>
           <td>${esc(p.sku)}</td>
           <td>${esc(p.nombre)}<div class="ayuda">${(p.imagenes || []).length} foto(s)</div></td>
           <td>${esc(p.cats.map(nombreCat).filter(Boolean).join(", ") || "—")}</td>
           <td>${esc(p.sexo)}</td>
+          <td>${esc(p.vendedor || "—")}</td>
+          <td>${esc(p.estado_producto)}</td>
+          <td>${esc(p.unidades)}</td>
           <td>${esc(precio(p.precio))}</td>
-          <td><span class="insignia ${p.activo ? "" : "off"}">${p.activo ? "Visible" : "Oculto"}</span></td>
+          <td>${situacion}</td>
           <td class="acciones">
             <button class="btn sec chico" type="button" data-edit="${esc(p.id)}">Editar</button>
             <button class="btn peligro chico" type="button" data-del="${esc(p.id)}">Eliminar</button>
           </td>
-        </tr>`).join("")
-      : `<tr><td colspan="8">Aún no hay productos.</td></tr>`;
+        </tr>`;
+      }).join("")
+      : `<tr><td colspan="11">Aún no hay productos.</td></tr>`;
     $("filas").querySelectorAll("[data-edit]").forEach((b) =>
       b.addEventListener("click", () => abrirForm(b.dataset.edit)));
     $("filas").querySelectorAll("[data-del]").forEach((b) =>
       b.addEventListener("click", () => eliminarProducto(b.dataset.del)));
-  }
-
-  function pintarCategorias() {
-    $("filas-cat").innerHTML = categorias.length
-      ? categorias.map((c) => `
-      <tr><td>${esc(c.nombre)}</td>
-      <td class="acciones"><button class="btn peligro chico" type="button" data-delcat="${esc(c.id)}">Eliminar</button></td></tr>`).join("")
-      : `<tr><td colspan="2">Aún no hay categorías.</td></tr>`;
-    $("filas-cat").querySelectorAll("[data-delcat]").forEach((b) =>
-      b.addEventListener("click", () => eliminarCategoria(Number(b.dataset.delcat))));
   }
 
   // ---------- Pestañas ----------
@@ -178,29 +194,70 @@
   }
   $("tab-prod").addEventListener("click", () => pestana("prod"));
   $("tab-cat").addEventListener("click", () => pestana("cat"));
-  $("tab-aj").addEventListener("click", async () => {
-    pestana("aj");
-    $("aj-wa").value = await window.Meow.cargarWhatsApp();
-  });
+  $("tab-aj").addEventListener("click", () => pestana("aj"));
 
-  // ---------- Ajustes: número de WhatsApp ----------
-  $("form-aj").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const n = $("aj-wa").value.replace(/\D/g, "");
-    if (n.length < 10 || n.length > 15) { toast("Número no válido (incluye código de país)"); return; }
-    const { error } = await db.from("configuracion").upsert({ clave: "whatsapp", valor: n });
-    if (error) { toast("No se pudo guardar: " + explicarError(error, "guardar whatsapp")); return; }
-    $("aj-wa").value = n;
-    toast("Número de WhatsApp actualizado");
-  });
+  // Enter guarda y Escape cancela dentro de una fila en edición
+  function atajosFila(fila, guardar, cancelar) {
+    fila.querySelectorAll("input").forEach((i) => i.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); guardar(); }
+      if (e.key === "Escape") { e.stopPropagation(); cancelar(); }
+    }));
+  }
 
-  // ---------- Categorías ----------
+  // ---------- Categorías (se puede editar solo el nombre) ----------
+  function pintarCategorias() {
+    $("filas-cat").innerHTML = categorias.length
+      ? categorias.map((c) => editandoCat === c.id
+        ? `<tr data-fila-cat>
+             <td><input value="${esc(c.nombre)}" maxlength="60" aria-label="Nombre de la categoría"></td>
+             <td class="acciones">
+               <button class="btn chico" type="button" data-savecat="${esc(c.id)}">Guardar</button>
+               <button class="btn sec chico" type="button" data-cancelcat>Cancelar</button>
+             </td></tr>`
+        : `<tr><td>${esc(c.nombre)}</td>
+             <td class="acciones">
+               <button class="btn sec chico" type="button" data-editcat="${esc(c.id)}">Editar nombre</button>
+               <button class="btn peligro chico" type="button" data-delcat="${esc(c.id)}">Eliminar</button>
+             </td></tr>`).join("")
+      : `<tr><td colspan="2">Aún no hay categorías.</td></tr>`;
+    const box = $("filas-cat");
+    box.querySelectorAll("[data-editcat]").forEach((b) => b.addEventListener("click", () => { editandoCat = Number(b.dataset.editcat); pintarCategorias(); }));
+    box.querySelectorAll("[data-delcat]").forEach((b) => b.addEventListener("click", () => eliminarCategoria(Number(b.dataset.delcat))));
+    const fila = box.querySelector("[data-fila-cat]");
+    if (fila) {
+      const cancelar = () => { editandoCat = null; pintarCategorias(); };
+      const guardar = () => guardarCategoria(editandoCat, fila.querySelector("input").value);
+      fila.querySelector("[data-savecat]").addEventListener("click", guardar);
+      fila.querySelector("[data-cancelcat]").addEventListener("click", cancelar);
+      atajosFila(fila, guardar, cancelar);
+      const inp = fila.querySelector("input"); inp.focus(); inp.select();
+    }
+  }
+
+  async function guardarCategoria(id, valor) {
+    const nombre = valor.trim();
+    const actual = categorias.find((c) => c.id === id);
+    if (nombre.length < 2 || nombre.length > 60) { toast("El nombre debe tener entre 2 y 60 caracteres"); return; }
+    if (actual && actual.nombre === nombre) { editandoCat = null; pintarCategorias(); return; }
+    const { error } = await db.from("categorias").update({ nombre }).eq("id", id);
+    if (error) {
+      toast(error.code === "23505" ? "Ya existe una categoría con ese nombre" : "No se pudo renombrar: " + explicarError(error, "renombrar categoría"));
+      return;
+    }
+    editandoCat = null;
+    toast("Nombre de categoría actualizado");
+    await cargar();
+  }
+
   $("form-cat").addEventListener("submit", async (e) => {
     e.preventDefault();
     const nombre = $("cat-nombre").value.trim();
     if (!nombre) return;
     const { error } = await db.from("categorias").insert({ nombre });
-    if (error) { toast("No se pudo agregar: " + explicarError(error, "agregar categoría")); return; }
+    if (error) {
+      toast(error.code === "23505" ? "Ya existe una categoría con ese nombre" : "No se pudo agregar: " + explicarError(error, "agregar categoría"));
+      return;
+    }
     $("cat-nombre").value = "";
     toast("Categoría agregada");
     await cargar();
@@ -211,6 +268,87 @@
     const { error } = await db.from("categorias").delete().eq("id", id);
     if (error) { toast("No se pudo eliminar: " + explicarError(error, "eliminar categoría")); return; }
     toast("Categoría eliminada");
+    await cargar();
+  }
+
+  // ---------- Números de WhatsApp (con nombre editable) ----------
+  function pintarNumeros() {
+    $("filas-num").innerHTML = numeros.length
+      ? numeros.map((n, i) => editandoNum === n.id
+        ? `<tr data-fila-num>
+             <td><input data-nn value="${esc(n.nombre)}" maxlength="60" aria-label="Nombre del número"></td>
+             <td><input data-nv value="${esc(n.numero)}" inputmode="numeric" aria-label="Número de WhatsApp"></td>
+             <td class="acciones">
+               <button class="btn chico" type="button" data-savenum>Guardar</button>
+               <button class="btn sec chico" type="button" data-cancelnum>Cancelar</button>
+             </td></tr>`
+        : `<tr>
+             <td>${esc(n.nombre)} ${i === 0 ? `<span class="insignia">Principal</span>` : ""}</td>
+             <td>${esc(verNumero(n))}</td>
+             <td class="acciones">
+               <button class="btn sec chico" type="button" data-editnum="${esc(n.id)}">Editar</button>
+               <button class="btn peligro chico" type="button" data-delnum="${esc(n.id)}">Eliminar</button>
+             </td></tr>`).join("")
+      : `<tr><td colspan="3">Aún no hay números. Agrega uno arriba.</td></tr>`;
+    const box = $("filas-num");
+    box.querySelectorAll("[data-editnum]").forEach((b) => b.addEventListener("click", () => { editandoNum = Number(b.dataset.editnum); pintarNumeros(); }));
+    box.querySelectorAll("[data-delnum]").forEach((b) => b.addEventListener("click", () => eliminarNumero(Number(b.dataset.delnum))));
+    const fila = box.querySelector("[data-fila-num]");
+    if (fila) {
+      const cancelar = () => { editandoNum = null; pintarNumeros(); };
+      const guardar = () => guardarNumero(editandoNum, fila.querySelector("[data-nn]").value, fila.querySelector("[data-nv]").value);
+      fila.querySelector("[data-savenum]").addEventListener("click", guardar);
+      fila.querySelector("[data-cancelnum]").addEventListener("click", cancelar);
+      atajosFila(fila, guardar, cancelar);
+      const inp = fila.querySelector("[data-nn]"); inp.focus(); inp.select();
+    }
+  }
+
+  function validarNumero(nombre, numeroTxt) {
+    const n = nombre.trim();
+    const d = numeroTxt.replace(/\D/g, "");
+    if (n.length < 2 || n.length > 60) return { error: "El nombre debe tener entre 2 y 60 caracteres" };
+    if (!/^\d{10,15}$/.test(d)) return { error: "Número no válido: incluye el código de país (ej. 504 + 8 dígitos)" };
+    return { nombre: n, numero: d };
+  }
+
+  async function guardarNumero(id, nombreTxt, numeroTxt) {
+    const v = validarNumero(nombreTxt, numeroTxt);
+    if (v.error) { toast(v.error); return; }
+    const { error } = await db.from("numeros_whatsapp").update({ nombre: v.nombre, numero: v.numero }).eq("id", id);
+    if (error) {
+      toast(error.code === "23505" ? "Ese número ya está guardado" : "No se pudo guardar: " + explicarError(error, "editar número"));
+      return;
+    }
+    editandoNum = null;
+    toast("Número actualizado");
+    await cargar();
+  }
+
+  $("form-num").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const v = validarNumero($("num-nombre").value, $("num-numero").value);
+    if (v.error) { toast(v.error); return; }
+    const { error } = await db.from("numeros_whatsapp").insert({ nombre: v.nombre, numero: v.numero });
+    if (error) {
+      toast(error.code === "23505" ? "Ese número ya está guardado" : "No se pudo agregar: " + explicarError(error, "agregar número"));
+      return;
+    }
+    $("num-nombre").value = ""; $("num-numero").value = "";
+    toast("Número agregado");
+    await cargar();
+  });
+
+  async function eliminarNumero(id) {
+    if (numeros.length <= 1) { toast("Debe quedar al menos un número"); return; }
+    const usados = productos.filter((p) => p.numero_id === id).length;
+    const aviso = usados
+      ? `¿Eliminar este número? ${usados} producto(s) lo usan y pasarán al número principal.`
+      : "¿Eliminar este número?";
+    if (!confirm(aviso)) return;
+    const { error } = await db.from("numeros_whatsapp").delete().eq("id", id);
+    if (error) { toast("No se pudo eliminar: " + explicarError(error, "eliminar número")); return; }
+    toast("Número eliminado");
     await cargar();
   }
 
@@ -264,6 +402,26 @@
   });
 
   // ---------- Formulario de producto ----------
+  $("f-estado").innerHTML = opciones(ESTADOS);
+  $("f-vendedor").innerHTML = opciones(VENDEDORES, "Selecciona…");
+
+  // Disponibilidad: marcada = "No vendido"; desmarcada = "Vendido" y el producto queda oculto.
+  function aplicarDisponibilidad(inicial) {
+    const disponible = $("f-disp").checked;
+    $("f-disp-txt").textContent = disponible ? "No vendido" : "Vendido";
+    if (!disponible) {
+      if (!inicial) visibleAntes = $("f-activo").checked;
+      $("f-activo").checked = false;
+      $("f-activo").disabled = true;
+      $("f-activo-ayuda").hidden = false;
+    } else {
+      $("f-activo").disabled = false;
+      if (!inicial) $("f-activo").checked = visibleAntes;
+      $("f-activo-ayuda").hidden = true;
+    }
+  }
+  $("f-disp").addEventListener("change", () => aplicarDisponibilidad(false));
+
   function abrirForm(id) {
     editandoId = id || null;
     const p = productos.find((x) => x.id === id);
@@ -277,12 +435,34 @@
     $("f-sku").value = p?.sku || "";
     $("f-precio").value = p?.precio ?? "";
     $("f-sexo").value = p?.sexo || "Unisex";
+    $("f-estado").value = p?.estado_producto || "Nuevo";
+    $("f-unidades").value = p?.unidades ?? 1;
     $("f-desc").value = p?.descripcion || "";
-    $("f-tallas").value = (p?.tallas || []).join(", ");
     $("f-colores").value = (p?.colores || []).join(", ");
+
+    // Talla: lista fija. Si el producto trae una talla fuera de la lista, se conserva como opción extra.
+    const tallaActual = p?.tallas?.[0] || "";
+    const extra = tallaActual && !TALLAS.includes(tallaActual) ? [tallaActual] : [];
+    $("f-talla").innerHTML = opciones([...TALLAS, ...extra], "Sin talla");
+    $("f-talla").value = tallaActual;
+    $("f-talla-ayuda").hidden = !(p?.tallas?.length > 1);
+    $("f-talla-ayuda").textContent = p?.tallas?.length > 1
+      ? `Este producto tenía varias tallas (${p.tallas.join(", ")}). Al guardar se conservará solo la elegida.` : "";
+
+    // Solo administración
+    $("f-vendedor").value = p?.vendedor || "";
+    $("f-numero").innerHTML =
+      `<option value="">Principal (automático)</option>` +
+      numeros.map((n) => `<option value="${esc(n.id)}">${esc(n.nombre)} · ${esc(verNumero(n))}</option>`).join("");
+    $("f-numero").value = p ? (p.numero_id ?? "") : (numeros[0]?.id ?? "");
+
     $("f-url").value = "";
     $("f-img").value = "";
+    visibleAntes = true;
+    $("f-disp").checked = p ? p.disponible : true;
     $("f-activo").checked = p ? p.activo : true;
+    aplicarDisponibilidad(true);
+
     fotosForm.forEach((f) => f.tipo === "file" && URL.revokeObjectURL(f.src));
     fotosForm = (p?.imagenes || []).map(urlSegura).filter(Boolean).map((src) => ({ tipo: "url", src }));
     pintarMinis();
@@ -341,7 +521,10 @@
     try {
       const nombre = $("f-nombre").value.trim();
       const precioNum = Number($("f-precio").value);
+      const unidades = Number($("f-unidades").value);
       if (!nombre || $("f-precio").value === "" || !(precioNum >= 0)) throw new Error("Revisa nombre y precio.");
+      if (!Number.isInteger(unidades) || unidades < 1) throw new Error("Las unidades deben ser un número entero de 1 o más.");
+      if (!$("f-vendedor").value) throw new Error("Selecciona el vendedor.");
 
       // 1) Subir las fotos nuevas respetando el orden
       const imagenes = [];
@@ -356,16 +539,23 @@
         }
       }
 
-      // 2) Guardar el producto
+      // 2) Guardar el producto. Si está vendido, siempre queda oculto.
+      const disponible = $("f-disp").checked;
+      const talla = $("f-talla").value;
       const datos = {
         nombre,
         descripcion: $("f-desc").value.trim(),
         precio: precioNum,
         sexo: $("f-sexo").value,
-        tallas: lista($("f-tallas").value),
+        estado_producto: $("f-estado").value,
+        unidades,
+        tallas: talla ? [talla] : [],
         colores: lista($("f-colores").value),
         imagenes,
-        activo: $("f-activo").checked
+        vendedor: $("f-vendedor").value,
+        numero_id: $("f-numero").value ? Number($("f-numero").value) : null,
+        disponible,
+        activo: disponible ? $("f-activo").checked : false
       };
       const sku = $("f-sku").value.trim();
       if (sku) datos.sku = sku;

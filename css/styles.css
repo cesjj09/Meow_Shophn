@@ -190,6 +190,11 @@ label { font-weight: 700; font-size: .85rem; display: block; margin-bottom: 4px;
 }
 .chip:hover { background: var(--rosa-pastel); }
 .chip[aria-pressed=true] { background: var(--negro); color: var(--marfil); }
+.chip .cuenta {
+  display: inline-block; min-width: 1.6em; margin-left: 4px; padding: 0 7px; border-radius: 999px;
+  background: var(--rosa-pastel); color: var(--negro); font-size: .8rem; font-weight: 800; text-align: center;
+}
+.chip[aria-pressed=true] .cuenta { background: var(--rosa-intenso); }
 
 /* tarjetas con display:flex → móvil 2, tableta 3, computadora 5 por fila */
 .productos { display: flex; flex-wrap: wrap; gap: 18px; padding: 14px 4px 8px; }
@@ -234,7 +239,8 @@ label { font-weight: 700; font-size: .85rem; display: block; margin-bottom: 4px;
 .info .precio { font-weight: 800; font-size: 1.5rem; margin: 0; }
 .info p { margin: 0; }
 .datos { display: grid; gap: 8px; margin: 0; }
-.datos div { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 8px; }
+.datos div { display: grid; grid-template-columns: 140px 1fr; align-items: center; gap: 8px; }
+@media (max-width: 380px) { .datos div { grid-template-columns: 112px 1fr; } }
 .datos dt { font-weight: 800; }
 .datos dd { margin: 0; }
 .datos label { font-size: 1rem; margin: 0; }
@@ -282,7 +288,7 @@ label { font-weight: 700; font-size: .85rem; display: block; margin-bottom: 4px;
 .panel-barra { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 24px 0 12px; }
 .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
 .tabla-wrap { overflow-x: auto; background: var(--marfil); border: 1px solid var(--borde); border-radius: var(--radio); }
-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+table { width: 100%; border-collapse: collapse; min-width: 1040px; }
 th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--borde); vertical-align: middle; }
 th { background: var(--rosa-pastel); font-size: .85rem; }
 td img { width: 48px; height: 60px; object-fit: cover; border-radius: 8px; background: var(--rosa-pastel); }
@@ -292,6 +298,12 @@ td img { width: 48px; height: 60px; object-fit: cover; border-radius: 8px; backg
 .formulario { padding: 24px; display: grid; gap: 14px; max-height: 92vh; overflow-y: auto; }
 .formulario .fila { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 680px) { .formulario .fila { grid-template-columns: 1fr; } }
+input[type=checkbox] { width: auto; }
+.check-linea { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-weight: 600; font-size: 1rem; cursor: pointer; }
+.interno { border: 2px dashed var(--rosa-intenso); border-radius: 12px; padding: 12px 14px; display: grid; gap: 12px; background: color-mix(in srgb, var(--rosa-pastel) 25%, var(--marfil)); }
+.interno h3 { margin: 0; font-size: .95rem; }
+.editar-inline { display: flex; gap: 8px; flex-wrap: wrap; }
+.editar-inline input { max-width: 240px; }
 .checks { display: flex; flex-wrap: wrap; gap: 8px; }
 .checks label { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-weight: 600; border: 2px solid var(--borde); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
 .checks input { width: auto; }
