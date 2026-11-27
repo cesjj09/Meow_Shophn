@@ -120,12 +120,16 @@
   }
   $("buscador").addEventListener("submit", (e) => {
     e.preventDefault();
-    filtros = { q: $("f-nombre").value, min: numeroOnull($("f-min").value), max: numeroOnull($("f-max").value) };
+    filtros = { q: $("f-nombre").value, min: null, max: numeroOnull($("f-max").value) };
     pintarGrid();
   });
-  // El nombre se busca al escribir, sin necesidad de pulsar Aplicar (el precio sí usa Aplicar).
+  // El nombre se busca al escribir, y el precio máximo al escribirlo, sin pulsar Aplicar.
   $("f-nombre").addEventListener("input", () => {
     filtros = { ...filtros, q: $("f-nombre").value };
+    pintarGrid();
+  });
+  $("f-max").addEventListener("input", () => {
+    filtros = { ...filtros, max: numeroOnull($("f-max").value) };
     pintarGrid();
   });
   $("btn-restablecer").addEventListener("click", () => {

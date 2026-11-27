@@ -2,7 +2,7 @@
 
 ## 1. Para el cliente
 1. Entra a la tienda. El menú (Inicio, Catálogo, Quiénes somos, Contáctanos) se queda fijo arriba; en el celular se abre con el botón de tres rayas.
-2. En **Catálogo** puede buscar por nombre y por rango de precio (el nombre filtra mientras escribes; el precio se aplica con `Aplicar`; `Restablecer` limpia todo) y filtrar con la lista horizontal de categorías y sexo. Cada categoría muestra cuántos productos tiene. Tocar una categoría la activa; tocarla de nuevo la desactiva.
+2. En **Catálogo** puede buscar por nombre y por precio máximo (ambos filtran mientras escribes; `Restablecer` limpia todo) y filtrar con la lista horizontal de categorías y sexo. Cada categoría muestra cuántos productos tiene. Tocar una categoría la activa; tocarla de nuevo la desactiva.
 3. Al tocar una prenda se abre su detalle: fotos (con scroll), nombre, descripción, categorías, sexo, **estado** (Nuevo, Semi-nuevo, Buen estado), **unidades**, talla y color(es) mayoritario(s).
 4. **Comprar por WhatsApp** abre el chat con un mensaje ya escrito: producto, talla, color(es), precio, enlace directo y foto. Va al número de WhatsApp asignado a ese producto.
 
