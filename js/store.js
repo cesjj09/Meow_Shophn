@@ -123,6 +123,11 @@
     filtros = { q: $("f-nombre").value, min: numeroOnull($("f-min").value), max: numeroOnull($("f-max").value) };
     pintarGrid();
   });
+  // El nombre se busca al escribir, sin necesidad de pulsar Aplicar (el precio sí usa Aplicar).
+  $("f-nombre").addEventListener("input", () => {
+    filtros = { ...filtros, q: $("f-nombre").value };
+    pintarGrid();
+  });
   $("btn-restablecer").addEventListener("click", () => {
     $("buscador").reset();
     filtros = { q: "", min: null, max: null };

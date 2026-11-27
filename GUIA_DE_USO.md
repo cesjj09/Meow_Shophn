@@ -2,7 +2,7 @@
 
 ## 1. Para el cliente
 1. Entra a la tienda. El menú (Inicio, Catálogo, Quiénes somos, Contáctanos) se queda fijo arriba; en el celular se abre con el botón de tres rayas.
-2. En **Catálogo** puede buscar por nombre y por rango de precio (`Aplicar` / `Restablecer`) y filtrar con la lista horizontal de categorías y sexo. Cada categoría muestra cuántos productos tiene. Tocar una categoría la activa; tocarla de nuevo la desactiva.
+2. En **Catálogo** puede buscar por nombre y por rango de precio (el nombre filtra mientras escribes; el precio se aplica con `Aplicar`; `Restablecer` limpia todo) y filtrar con la lista horizontal de categorías y sexo. Cada categoría muestra cuántos productos tiene. Tocar una categoría la activa; tocarla de nuevo la desactiva.
 3. Al tocar una prenda se abre su detalle: fotos (con scroll), nombre, descripción, categorías, sexo, **estado** (Nuevo, Semi-nuevo, Buen estado), **unidades**, talla y color(es) mayoritario(s).
 4. **Comprar por WhatsApp** abre el chat con un mensaje ya escrito: producto, talla, color(es), precio, enlace directo y foto. Va al número de WhatsApp asignado a ese producto.
 
@@ -16,7 +16,7 @@ Botón `+ Nuevo producto` (o `Editar` en la fila). Campos:
 |---|---|---|
 | Nombre, Precio, Sexo, Descripción | Datos básicos | Sí |
 | Estado del producto | Nuevo, Semi-nuevo o Buen estado | Sí |
-| Unidades | Número entero, por defecto 1 | Sí |
+| Unidades | «Prenda única» viene marcada (siempre 1). Si la desmarcas, escribes cuántas unidades hay (entero, mínimo 1) | Sí |
 | Categorías | Puedes marcar varias | Sí |
 | Talla | Lista: <XS, XS, S, M, L, XL, >XL (o «Sin talla») | Sí |
 | Color(es) mayoritario(s) | Separados por coma | Sí |

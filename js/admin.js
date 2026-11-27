@@ -437,6 +437,8 @@
     $("f-sexo").value = p?.sexo || "Unisex";
     $("f-estado").value = p?.estado_producto || "Nuevo";
     $("f-unidades").value = p?.unidades ?? 1;
+    $("f-unica").checked = (p?.unidades ?? 1) === 1;
+    sincronizarUnidades();
     $("f-desc").value = p?.descripcion || "";
     $("f-colores").value = (p?.colores || []).join(", ");
 
@@ -521,7 +523,7 @@
     try {
       const nombre = $("f-nombre").value.trim();
       const precioNum = Number($("f-precio").value);
-      const unidades = Number($("f-unidades").value);
+      const unidades = $("f-unica").checked ? 1 : Number($("f-unidades").value);
       if (!nombre || $("f-precio").value === "" || !(precioNum >= 0)) throw new Error("Revisa nombre y precio.");
       if (!Number.isInteger(unidades) || unidades < 1) throw new Error("Las unidades deben ser un número entero de 1 o más.");
       if (!$("f-vendedor").value) throw new Error("Selecciona el vendedor.");
@@ -615,4 +617,13 @@
   } else {
     mostrarSegunSesion();
   }
+  // Prenda única: unidades fijas en 1; si se desmarca, el vendedor indica cuántas hay.
+  function sincronizarUnidades() {
+    const unica = $("f-unica").checked;
+    const u = $("f-unidades");
+    u.disabled = unica;
+    if (unica) u.value = 1;
+  }
+  $("f-unica").addEventListener("change", sincronizarUnidades);
+
 })();

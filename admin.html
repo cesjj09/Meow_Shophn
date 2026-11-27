@@ -88,7 +88,10 @@
         </div>
         <div class="fila">
           <div><label for="f-estado">Estado del producto *</label><select id="f-estado" required></select></div>
-          <div><label for="f-unidades">Unidades *</label><input id="f-unidades" type="number" min="1" step="1" value="1" inputmode="numeric" required></div>
+          <div><label for="f-unidades">Unidades *</label>
+            <label class="check-linea"><input id="f-unica" type="checkbox" checked> Prenda única</label>
+            <input id="f-unidades" type="number" min="1" step="1" value="1" inputmode="numeric" required disabled>
+            <span class="ayuda">Si es prenda única, las unidades son siempre 1. Desmarca para indicar cuántas hay.</span></div>
         </div>
         <div>
           <label id="f-cats-label">Categorías</label>
